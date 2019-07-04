@@ -1,101 +1,139 @@
 import React, { Component } from "react";
+import Utils from './Utils'
+import deepmerge from 'deepmerge'
 
-class App extends Component {
+class GridLayout extends Component {
+  
   constructor(props) {
     super(props);
-    this.state = {};
+
+    let virtualGridLayout = this.props.layout.split(" ");
+    if(virtualGridLayout.length !== this.props.children.length) 
+      throw new Error("Inconsistency between the layout and the number of components of the grid.")
+
+    this.state = {
+      layout: this.props.layout,
+      nRows: this.props.nRows,
+      nMaxRows: 120,
+      nColumns: this.props.nColumns,
+      nMaxColumns: 100,
+      virtualGridLayout: this.props.layout.split(" "),
+      virtualGrid: Utils.arrayFilled(this.props.nRows*this.props.nColumns,-1)
+    };
+
   }
 
-  // Source: https://stackoverflow.com/questions/5667888/counting-the-occurrences-frequency-of-array-elements
-  array_count_occurence(arr) {
-      var a = [],
-        b = [],
-        prev;
-
-      arr.sort();
-      for (var i = 0; i < arr.length; i++) {
-        if (arr[i] !== prev) {
-          a.push(arr[i]);
-          b.push(1);
-        } else {
-          b[b.length - 1]++;
-        }
-        prev = arr[i];
-      }
-
-      return [a, b];
+  parseCellLayout(cellLayout) {
+    let cellSpanMatcher = /(?<spanLength>[0-9]+)(?<spanOperator>[|-])/;
+    // First find all complete matches
+    let match = cellLayout.match(new RegExp(cellSpanMatcher, "g"))
+    // For each match extract the spanLength and spanOperator
+    return (
+      match.map((element) => {
+        return (element.match(cellSpanMatcher))
+      })
+    )
   }
 
-  
-  // split
-  // 
-  // Source: https://www.geeksforgeeks.org/split-the-number-into-n-parts-such-that-difference-between-the-smallest-and-the-largest-part-is-minimum/
-  split(x, n) {
-    // If we cannot split the
-    // number into exactly 'N' parts
-    let parts = [];
+  updateGrid(cellCoordinates, cellIndex) {
+    let gridCellCoordinates = Utils.getGridCellCoordinatesFromGridRanges(cellCoordinates[0], cellCoordinates[1])
+    let gridCellIndices = gridCellCoordinates.map((element) => {
+      return Utils.findIndexFrom2DCoordinates(element[0], element[1], this.state.nColumns)
+    })
+    this.state.virtualGrid = this.state.virtualGrid.map((element, index) => {
+      if(gridCellIndices.includes(index))
+        return cellIndex
+      return element
+    })
+    console.log(this.state.virtualGrid)
+    return cellCoordinates
+  }
 
-    if (x < n) {
-      console.log("error");
+  toVirtualCellCoordinates(cellCoordinates) {
+    const xMultiplyFactor = this.state.nMaxColumns / this.state.nColumns;
+    const yMultiplyFactor = this.state.nMaxRows / this.state.nRows
+    console.log(cellCoordinates)
+    return cellCoordinates.map((element, index1) => {
+      return element.map((element, index2) => {
+        if(index2 === 0 & element === 0)
+          return 1;
+        if(index2 === 0)
+          return ( element ) * ( index1 === 0 ? xMultiplyFactor : yMultiplyFactor )
+        if(index2 === 1)
+          return ( element + 1 ) * ( index1 === 0 ? xMultiplyFactor : yMultiplyFactor )
+        return element
+      })
+    })
+  }
+
+  getCellCoordinatesFromIndex(index) {
+    let cellLayout = this.state.virtualGridLayout[index];
+    // Convert from index to (x,y) coordinates.
+    let currentGridCursorPosition = Utils.find2DCoordinatesFromIndex(Utils.virtualGridLayoutArrayFindAnchor(this.state.virtualGrid), this.state.nColumns)
+    console.log("Grid Cursor position: "+ Utils.objectToArray(currentGridCursorPosition))
+    // By default cell dimensions are defined as 1-by-1.
+    let defaultCellCoordinates = Object.values(currentGridCursorPosition).map((element) => {
+      return { "begin": element, "end": element }
+    }).reduce((e,v,i) => {
+      e[["x","y"][i]] = v
+      return e
+    }, {})
+    // Check if it's a no spanning grid cell (aka 1-by-1)
+    if(cellLayout === '.') {
+      console.log("Type .")
+      return this.updateGrid(Utils.objectToArray(defaultCellCoordinates), index)
     }
-    // If x % n == 0 then the minimum
-    // difference is 0 and all
-    // numbers are x / n
-    else if (x % n === 0) {
-      for (let i = 0; i < n; i++) {
-        parts.push(Math.round(x / n))
-      }
-    } else {
-      // upto n-(x % n) the values
-      // will be x / n
-      // after that the values
-      // will be x / n + 1
-      let zp = n - (x % n);
-      let pp = Math.round(x / n);
-      for (let i = 0; i < n; i++) {
-        if (i >= zp) {
-          parts.push(pp + 1)
-        } else {
-          parts.push(pp)
-        }
-      }
-    }
-    return parts
+    console.log("Type | or -")
+    console.log(defaultCellCoordinates)
+    return (
+      this.updateGrid(
+        Utils.objectToArray(
+          deepmerge(
+            defaultCellCoordinates, 
+            this.parseCellLayout(cellLayout).map((element, index) => {
+              if(element.groups.spanOperator === '-')
+                return { 'x': { "end": defaultCellCoordinates["x"]["begin"] + parseInt(element.groups.spanLength) - 1 } }
+              else if(element.groups.spanOperator === '|') {
+                return { 'y': { "end": defaultCellCoordinates["y"]["begin"] + parseInt(element.groups.spanLength) - 1 } }
+              } else 
+                throw new Error("This grid cell span operator is not defined.")
+            }).reduce((obj, item) => item, {})
+          )
+        ),
+        index
+      )
+    )
   }
 
   render() {
-    // this.split(1234, 5);
-
     let cellWidth = 5,
       cellHeight = 5;
     let virtualGridWidth = window.innerWidth / cellWidth,
       virtualGridHeight = window.innerHeight / cellHeight;
 
-    let nRows = 100, nColumns = 100;
-
-    let virtualGridHeightMidPoint = nRows / 2,
+    let virtualGridHeightMidPoint = this.state.nMaxRows / 2,
       virtualGridWidthMidPoint = virtualGridWidth / 2;
     console.log(
       `${virtualGridWidth}, ${virtualGridHeight}, ${virtualGridHeightMidPoint}, ${virtualGridWidthMidPoint}`
     );
 
-    let columnSizes = this.split(window.innerWidth, nColumns)
-    console.log(columnSizes)
-    console.log(columnSizes.length)
-    let frequencyTable = this.array_count_occurence(columnSizes)
-    console.log(frequencyTable)
+    let columnSizes = Utils.arraySplit(window.innerWidth, this.state.nMaxColumns)
+    // console.log(columnSizes)
+    // console.log(columnSizes.length)
+    let frequencyTable = Utils.arrayFrequencyTable(columnSizes)
+    // console.log(frequencyTable)
     let gridTemplateColumns = frequencyTable[0].map((currElement, index) => {
       return `repeat(${frequencyTable[1][index]},"${frequencyTable[0][index]}px")`;
     }).join(' ');
-    console.log(gridTemplateColumns)
-    let rowSizes = this.split(window.innerWidth, nRows)
-    console.log(rowSizes)
-    console.log(rowSizes.length)
-    let rowSizesFrequencyTable = this.array_count_occurence(rowSizes)
+    // console.log(gridTemplateColumns)
+    let rowSizes = Utils.arraySplit(window.innerWidth, this.state.nMaxRows)
+    // console.log(rowSizes)
+    // console.log(rowSizes.length)
+    let rowSizesFrequencyTable = Utils.arrayFrequencyTable(rowSizes)
     let gridTemplateRows = rowSizesFrequencyTable[0].map((currElement, index) => {
       return `repeat(${rowSizesFrequencyTable[1][index]},"${rowSizesFrequencyTable[0][index]}px")`;
     }).join(' ');
-    console.log(gridTemplateRows)
+    // console.log(gridTemplateRows)
 
     // let gridTemplateColumns = `repeat(${Math.ceil(virtualGridWidth)}, ${cellWidth}px)`
     // let gridTemplateColumns = `repeat(${Math.ceil(virtualGridHeight)}, ${cellHeight}px)`
@@ -110,40 +148,57 @@ class App extends Component {
       backgroundColor: "#2196F3"
     };
 
+    // Add additional styles (hidden from the user) and that will overwrite user styles
+    let hiddenStyles = [
+      {
+        fontSize: 100
+      },
+      {
+        fontSize: 80
+      },
+      {
+        fontSize: 60
+      },
+      {
+        fontSize: 40
+      },
+      {
+        fontSize: 20
+      }
+    ]
+
     return (
       <div style={gridContainerStyle}>
-        <div
-          style={{
-            backgroundColor: "rgba(50, 255, 255, 0.8)",
-            gridColumn: `1 / 50`,
-            gridRow: `1 / 100`
-          }}
-        >
-          1
-        </div>
-        <div
-          style={{
-            backgroundColor: "rgba(255, 0, 255, 0.8)",
-            gridColumn: `50 / 100`,
-            gridRow: `1 / 50`
-          }}
-        >
-          2
-        </div>
-        <div
-          style={{
-            backgroundColor: "rgba(255, 50, 0, 0.8)",
-            gridColumn: `50 / 100`,
-            gridRow: `50 / 100`
-          }}
-        >
-          3
-        </div>
+        {
+          this.props.children.map((element, index) => {
+            /**
+             * Given the index of the component and the properties of the grid (layout, nRows, nColumns), 
+             * get the cell coordinates and convert them into virtual coordinates.
+             */
+            let vcc = this.toVirtualCellCoordinates(this.getCellCoordinatesFromIndex(index))
+            let coordinates = {
+              gridColumn: vcc[0].join(" / "),
+              gridRow: vcc[1].join(" / ")
+            }
+            /** 
+             * If a style has been defined by the user for the current component merge them with
+             * coordinates and hiddenStyles.
+            */
+            let style = element.props.style === undefined ? coordinates : Object.assign(element.props.style, coordinates)
+            return (
+              React.cloneElement(
+                element, 
+                { 
+                  key: index, 
+                  style: Object.assign(style, hiddenStyles[index]) })
+            )
+          })
+        }
       </div>
     );
   }
 }
 
-export default App
+export default GridLayout
 
 // ReactDOM.render(<App />, document.getElementById("root"));
