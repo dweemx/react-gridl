@@ -14,9 +14,9 @@ class GridLayout extends Component {
     this.state = {
       layout: this.props.layout,
       nRows: this.props.nRows,
-      nMaxRows: 120,
+      nMaxRows: 24, // Has to be a multiple of this.props.nRows
       nColumns: this.props.nColumns,
-      nMaxColumns: 100,
+      nMaxColumns: 20, // Has to be a multiple of this.props.nColumns
       virtualGridLayout: this.props.layout.split(" "),
       virtualGrid: Utils.arrayFilled(this.props.nRows*this.props.nColumns,-1)
     };
