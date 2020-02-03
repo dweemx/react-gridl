@@ -7,5 +7,9 @@
 
 February 03, 2020
 
+* Version 0.2.0
+  * Rewrite with hooks
+  * Add responsiveness
+  
 * Version 0.1.0
   * Initial draft
