@@ -45,21 +45,22 @@ export default class Utils {
     }
 
     static virtualGridLayoutArrayFindAnchor(arr) {
+        console.log(arr)
         return arr.findIndex((element) => element < 0)
     }
 
 
     // findIndexFrom2DCoordinates
     // Source: https://boards.straightdope.com/sdmb/showthread.php?t=359714
-    static findIndexFrom2DCoordinates(x, y, nColumns) {
-        return (nColumns*y + x)
+    static findIndexFrom2DCoordinates(x, y, numColumns) {
+        return (numColumns*y + x)
     }
 
     // arrayIndexFindXY
     // Source: https://boards.straightdope.com/sdmb/showthread.php?t=359714
-    static find2DCoordinatesFromIndex(index, nColumns) {
-        let y = Math.floor(index / nColumns)
-        return { x: index - (nColumns * y), y: y }
+    static find2DCoordinatesFromIndex(index, numColumns) {
+        let y = Math.floor(index / numColumns)
+        return { x: index - (numColumns * y), y: y }
     }
 
     /**
@@ -147,4 +148,23 @@ export default class Utils {
     static arrayFilled(n, val) {
         return Array.apply(null, Array(n)).map(Number.prototype.valueOf,val);
     }
+
+    /**
+     * This function debounce another function for given number of milliseconds
+     * 
+     * @param {Function} fn The object to convert to an array.
+     * @param {Number} ms The number of milliseconds to wait after running the given fn function.
+     *
+     */
+    static debounce(fn, ms) {
+        let timer;
+        return _ => {
+            clearTimeout(timer);
+            timer = setTimeout(_ => {
+                timer = null;
+                fn.apply(this, arguments);
+            }, ms);
+        };
+    }
+
 }

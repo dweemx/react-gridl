@@ -1,14 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import GridLayout from './App';
+import Composition from './components/Composition';
 import * as serviceWorker from './serviceWorker';
 
 ReactDOM.render(
-    <GridLayout 
+    <Composition 
         layout="2| . . 2- 2-"
-        nRows={4}
-        nColumns={2}>
+        numRows={4}
+        numColumns={2}>
         <div style={{backgroundColor: 'rgba(50, 255, 255, 0.8)'}}>
           1
         </div>
@@ -24,7 +24,7 @@ ReactDOM.render(
         <div style={{backgroundColor: 'rgba(255, 165, 0, 0.8)'}}>
           5
         </div>
-    </GridLayout>, 
+    </Composition>, 
     document.getElementById('root')
 );
 
