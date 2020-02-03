@@ -21,7 +21,7 @@
 		"eject": "react-scripts eject",
 		"publish:npm": "rm -rf dist && mkdir dist && babel src/components -d dist --copy-files",
 		"prepublish": "npm-auto-version",
-        "postpublish": "git push origin --tags"
+		"postpublish": "git push origin --tags"
 	},
 	"eslintConfig": {
 		"extends": "react-app"
@@ -40,6 +40,7 @@
 	},
 	"devDependencies": {
 		"@babel/cli": "^7.8.4",
-		"@babel/preset-react": "^7.8.3"
+		"@babel/preset-react": "^7.8.3",
+		"npm-auto-version": "^1.0.0"
 	}
 }
