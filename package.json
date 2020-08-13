@@ -11,8 +11,9 @@
     "deepmerge": "^3.3.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "react-scripts": "^3.4.1",
-    "serialize-javascript": "^3.0.0"
+    "react-scripts": "^3.4.3",
+    "resize-observer-polyfill": "^1.5.1",
+    "serialize-javascript": "^3.1.0"
   },
   "scripts": {
     "start": "react-scripts start",
